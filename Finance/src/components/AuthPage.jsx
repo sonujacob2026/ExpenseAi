@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSupabaseAuth } from '../context/SupabaseAuthContext';
+import { useNavigate } from 'react-router-dom';
 
 
 const AuthPage = () => {
-  const { signUp, signIn, signInWithGoogle, forgotPassword, validateUsername, validateEmail, validatePassword, loading: authLoading } = useSupabaseAuth();
+  const { user, signUp, signIn, signInWithGoogle, validateUsername, validateEmail, validatePassword } = useSupabaseAuth();
+  const navigate = useNavigate();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -13,6 +15,17 @@ const AuthPage = () => {
   const [message, setMessage] = useState('');
   const [validationErrors, setValidationErrors] = useState({});
   const [passwordStrength, setPasswordStrength] = useState(null);
+
+  // Redirect if user is already logged in
+  useEffect(() => {
+    if (user) {
+      if (user.user_metadata?.onboarding_completed) {
+        navigate('/dashboard');
+      } else {
+        navigate('/questionnaire');
+      }
+    }
+  }, [user, navigate]);
 
 
   // Real-time validation functions
@@ -125,17 +138,26 @@ const AuthPage = () => {
 
     try {
       if (isSignUp) {
-        const { error } = await signUp(email, password, fullName, username);
+        const { error, message } = await signUp(email, password, fullName, username);
         if (error) {
           setMessage(error);
           return;
         }
-        setMessage('Account created successfully!');
+        setMessage(message || 'Account created successfully! Please check your email for confirmation.');
       } else {
-        const { error } = await signIn(email, password);
+        const { user: loggedInUser, error } = await signIn(email, password);
         if (error) {
           setMessage(error);
           return;
+        }
+
+        // Successful login - redirect based on onboarding status
+        if (loggedInUser) {
+          if (loggedInUser.user_metadata?.onboarding_completed) {
+            navigate('/dashboard');
+          } else {
+            navigate('/questionnaire');
+          }
         }
       }
     } catch (error) {
@@ -169,27 +191,9 @@ const AuthPage = () => {
     }
   };
 
-  const handleForgotPassword = async () => {
-    if (!email) {
-      setMessage('Please enter your email address first');
-      return;
-    }
-
-    setLoading(true);
-    setMessage('');
-
-    try {
-      const { error } = await forgotPassword(email);
-      if (error) {
-        setMessage(error);
-      } else {
-        setMessage('Password reset email sent! Check your inbox.');
-      }
-    } catch (error) {
-      setMessage(error.message || 'Failed to send reset email');
-    } finally {
-      setLoading(false);
-    }
+  const handleForgotPassword = () => {
+    // Navigate to reset password page
+    navigate('/reset-password');
   };
 
   return (

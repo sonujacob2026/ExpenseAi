@@ -4,6 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import ExpenseList from './ExpenseList';
 import ExpenseStats from './ExpenseStats';
 import SimpleAddExpenseModal from './SimpleAddExpenseModal';
+import FinancialInsights from './FinancialInsights';
+import BudgetRecommendations from './BudgetRecommendations';
+import FinancialGoalsDisplay from './FinancialGoalsDisplay';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -21,10 +24,18 @@ const Dashboard = () => {
 
   const getProfile = async () => {
     try {
-      // Get profile from localStorage
-      const savedProfile = localStorage.getItem('expenseai_profile');
+      // Get profile from localStorage (try both keys)
+      let savedProfile = localStorage.getItem('expenseai_profile');
+      if (!savedProfile) {
+        savedProfile = localStorage.getItem('expenseai_financial_profile');
+      }
+
       if (savedProfile) {
-        setProfile(JSON.parse(savedProfile));
+        const profileData = JSON.parse(savedProfile);
+        console.log('📊 Loaded profile data:', profileData);
+        setProfile(profileData);
+      } else {
+        console.log('📊 No profile data found');
       }
     } catch (error) {
       console.error('Error loading profile:', error);
@@ -104,7 +115,7 @@ const Dashboard = () => {
             </div>
             
             <div className="flex items-center space-x-4">
-              <span className="text-gray-700">Welcome, {user?.fullName || user?.email}</span>
+              <span className="text-gray-700">Welcome, {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}</span>
               <button
                 onClick={handleSignOut}
                 className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors"
@@ -141,7 +152,7 @@ const Dashboard = () => {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm text-gray-600">Household Members</p>
-                  <p className="text-2xl font-bold text-gray-900">{profile.household_members}</p>
+                  <p className="text-2xl font-bold text-gray-900">{profile.householdMembers || profile.household_members || 'Not set'}</p>
                 </div>
               </div>
             </div>
@@ -155,7 +166,7 @@ const Dashboard = () => {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm text-gray-600">Monthly Income</p>
-                  <p className="text-2xl font-bold text-gray-900">₹{profile.monthly_income?.toLocaleString('en-IN')}</p>
+                  <p className="text-2xl font-bold text-gray-900">₹{(parseInt(profile.monthlyIncome) || profile.monthly_income || 0).toLocaleString('en-IN')}</p>
                 </div>
               </div>
             </div>
@@ -169,7 +180,7 @@ const Dashboard = () => {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm text-gray-600">Debt Status</p>
-                  <p className="text-2xl font-bold text-gray-900">{profile.has_debt ? 'Yes' : 'None'}</p>
+                  <p className="text-2xl font-bold text-gray-900">{(profile.hasDebt === 'yes' || profile.has_debt) ? 'Yes' : 'None'}</p>
                 </div>
               </div>
             </div>
@@ -220,6 +231,17 @@ const Dashboard = () => {
           </div>
         </div>
 
+        {/* Financial Insights and Budget Recommendations */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <FinancialInsights profile={profile} />
+          <BudgetRecommendations profile={profile} />
+        </div>
+
+        {/* Financial Goals */}
+        <div className="mb-8">
+          <FinancialGoalsDisplay profile={profile} />
+        </div>
+
         {/* Expense Statistics */}
         <ExpenseStats expenses={expenses} />
 
@@ -230,15 +252,7 @@ const Dashboard = () => {
           onEdit={editExpense}
         />
 
-        {/* Expense Statistics */}
-        <ExpenseStats expenses={expenses} />
 
-        {/* Expense List */}
-        <ExpenseList
-          expenses={expenses}
-          onDelete={deleteExpense}
-          onEdit={editExpense}
-        />
       </main>
 
       {/* Add Expense Modal */}

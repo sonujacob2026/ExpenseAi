@@ -53,18 +53,42 @@ export const SupabaseAuthProvider = ({ children }) => {
   const signUp = async (email, password, fullName, username) => {
     try {
       setLoading(true);
-      const { data, error } = await auth.signUp(email, password, {
-        full_name: fullName,
-        username: username,
-        onboarding_completed: false
+      console.log('📝 Attempting sign up with:', { email, fullName, username });
+
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            username: username,
+            onboarding_completed: false
+          },
+          emailRedirectTo: `${window.location.origin}/dashboard`
+        }
       });
 
+      console.log('📝 Sign up response:', { data, error });
+
       if (error) {
+        console.error('❌ Sign up error:', error);
         return { user: null, error: error.message };
       }
 
+      // Check if email confirmation is required
+      if (data.user && !data.session) {
+        console.log('📧 Email confirmation required for:', data.user.email);
+        return {
+          user: data.user,
+          error: null,
+          message: 'Please check your email and click the confirmation link to complete your registration.'
+        };
+      }
+
+      console.log('✅ Sign up successful:', data.user);
       return { user: data.user, error: null };
     } catch (error) {
+      console.error('❌ Sign up exception:', error);
       return { user: null, error: error.message };
     } finally {
       setLoading(false);
@@ -75,14 +99,38 @@ export const SupabaseAuthProvider = ({ children }) => {
   const signIn = async (email, password) => {
     try {
       setLoading(true);
-      const { data, error } = await auth.signIn(email, password);
+      console.log('🔐 Attempting sign in with:', email);
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      console.log('🔐 Sign in response:', { data, error });
 
       if (error) {
+        console.error('❌ Sign in error:', error);
+
+        // Check if it's an email confirmation issue
+        if (error.message.includes('Email not confirmed')) {
+          return {
+            user: null,
+            error: 'Please check your email and click the confirmation link before signing in.'
+          };
+        }
+
         return { user: null, error: error.message };
       }
 
+      console.log('✅ Sign in successful:', data.user);
+
+      // Update local state immediately
+      setUser(data.user);
+      setSession(data.session);
+
       return { user: data.user, error: null };
     } catch (error) {
+      console.error('❌ Sign in exception:', error);
       return { user: null, error: error.message };
     } finally {
       setLoading(false);

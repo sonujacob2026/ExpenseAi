@@ -6,6 +6,7 @@ import AuthPage from './components/AuthPage'
 import ResetPasswordPage from './components/ResetPasswordPage'
 import Questionnaire from './components/Questionnaire'
 import Dashboard from './components/Dashboard'
+import ForgotPasswordDemo from './components/ForgotPasswordDemo'
 
 const AppRoutes = () => {
   const { user, loading } = useSupabaseAuth();
@@ -19,7 +20,8 @@ const AppRoutes = () => {
   }
 
   return (
-    <Routes>
+    <>
+      <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route
         path="/auth"
@@ -37,6 +39,14 @@ const AppRoutes = () => {
       />
       <Route
         path="/reset-password"
+        element={<ResetPasswordPage />}
+      />
+      <Route
+        path="/auth/reset-password"
+        element={<ResetPasswordPage />}
+      />
+      <Route
+        path="/auth/callback"
         element={<ResetPasswordPage />}
       />
       <Route
@@ -67,7 +77,9 @@ const AppRoutes = () => {
           )
         }
       />
-    </Routes>
+      </Routes>
+      <ForgotPasswordDemo />
+    </>
   )
 }
 
