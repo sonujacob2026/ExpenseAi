@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useSupabaseAuth } from '../context/SupabaseAuthContext';
 import { useNavigate } from 'react-router-dom';
-import AddExpenseModal from './AddExpenseModal';
 import ExpenseList from './ExpenseList';
 import ExpenseStats from './ExpenseStats';
+import SimpleAddExpenseModal from './SimpleAddExpenseModal';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const { user, signOut } = useSupabaseAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [expenses, setExpenses] = useState([]);
+  const [activeTab, setActiveTab] = useState('expenses');
 
   useEffect(() => {
     getProfile();
@@ -154,7 +155,7 @@ const Dashboard = () => {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm text-gray-600">Monthly Income</p>
-                  <p className="text-2xl font-bold text-gray-900">${profile.monthly_income?.toLocaleString()}</p>
+                  <p className="text-2xl font-bold text-gray-900">₹{profile.monthly_income?.toLocaleString('en-IN')}</p>
                 </div>
               </div>
             </div>
@@ -229,33 +230,20 @@ const Dashboard = () => {
           onEdit={editExpense}
         />
 
-        {/* Coming Soon Features */}
-        <div className="bg-white rounded-lg p-8 shadow-sm border border-gray-200 mt-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Coming Soon</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Expense Analytics</h3>
-              <p className="text-gray-600">Detailed insights into your spending patterns with AI-powered recommendations.</p>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Bill Reminders</h3>
-              <p className="text-gray-600">Never miss a payment with intelligent bill tracking and notifications.</p>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Bank Integration</h3>
-              <p className="text-gray-600">Connect your bank accounts for automatic transaction import.</p>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Family Sharing</h3>
-              <p className="text-gray-600">Share budgets and expenses with family members securely.</p>
-            </div>
-          </div>
-        </div>
+        {/* Expense Statistics */}
+        <ExpenseStats expenses={expenses} />
+
+        {/* Expense List */}
+        <ExpenseList
+          expenses={expenses}
+          onDelete={deleteExpense}
+          onEdit={editExpense}
+        />
       </main>
 
       {/* Add Expense Modal */}
       {showAddExpense && (
-        <AddExpenseModal
+        <SimpleAddExpenseModal
           onClose={() => setShowAddExpense(false)}
           onAdd={addExpense}
         />

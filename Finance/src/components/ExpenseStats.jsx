@@ -29,9 +29,9 @@ const ExpenseStats = ({ expenses }) => {
   const weeklyTotal = recentExpenses.reduce((sum, expense) => sum + expense.amount, 0);
 
   const formatAmount = (amount) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-IN', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'INR'
     }).format(amount);
   };
 

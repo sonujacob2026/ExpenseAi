@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { initializeGoogleOAuth, GOOGLE_CLIENT_ID } from '../config/google';
+import React, { useState } from 'react';
+import { useSupabaseAuth } from '../context/SupabaseAuthContext';
+
 
 const AuthPage = () => {
-  const { signUp, signIn, signInWithGoogle, forgotPassword, validateUsername, validateEmail, validatePassword } = useAuth();
+  const { signUp, signIn, signInWithGoogle, forgotPassword, validateUsername, validateEmail, validatePassword, loading: authLoading } = useSupabaseAuth();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -13,35 +13,7 @@ const AuthPage = () => {
   const [message, setMessage] = useState('');
   const [validationErrors, setValidationErrors] = useState({});
   const [passwordStrength, setPasswordStrength] = useState(null);
-  const [googleInitialized, setGoogleInitialized] = useState(false);
 
-  // Initialize Google OAuth on component mount
-  useEffect(() => {
-    const initGoogle = async () => {
-      try {
-        // Wait for Google script to load
-        const checkGoogle = () => {
-          if (window.google) {
-            initializeGoogleOAuth()
-              .then(() => {
-                setGoogleInitialized(true);
-                console.log('✅ Google OAuth initialized');
-              })
-              .catch((error) => {
-                console.error('❌ Google OAuth initialization failed:', error);
-              });
-          } else {
-            setTimeout(checkGoogle, 100);
-          }
-        };
-        checkGoogle();
-      } catch (error) {
-        console.error('❌ Google OAuth setup failed:', error);
-      }
-    };
-
-    initGoogle();
-  }, []);
 
   // Real-time validation functions
   const handleUsernameChange = async (value) => {
@@ -143,22 +115,7 @@ const AuthPage = () => {
     }
   };
 
-  // Check if form is valid
-  const isFormValid = () => {
-    if (isSignUp) {
-      return (
-        email &&
-        password &&
-        fullName &&
-        !validationErrors.email &&
-        !validationErrors.password &&
-        !validationErrors.fullName &&
-        passwordStrength?.isValid
-      );
-    } else {
-      return email && password;
-    }
-  };
+
 
   const handleAuth = async (e) => {
     e.preventDefault();
@@ -168,14 +125,14 @@ const AuthPage = () => {
 
     try {
       if (isSignUp) {
-        const { user, error } = await signUp(email, password, fullName, username);
+        const { error } = await signUp(email, password, fullName, username);
         if (error) {
           setMessage(error);
           return;
         }
         setMessage('Account created successfully!');
       } else {
-        const { user, error } = await signIn(email, password);
+        const { error } = await signIn(email, password);
         if (error) {
           setMessage(error);
           return;
@@ -193,73 +150,27 @@ const AuthPage = () => {
     setMessage('');
 
     try {
-      if (!window.google) {
-        setMessage('Google OAuth is not loaded. Please refresh the page.');
+      const { error } = await signInWithGoogle();
+
+      if (error) {
+        setMessage(error);
         setLoading(false);
         return;
       }
 
-      // Use Google OAuth popup instead of One Tap
-      window.google.accounts.oauth2.initCodeClient({
-        client_id: GOOGLE_CLIENT_ID,
-        scope: 'email profile',
-        ux_mode: 'popup',
-        callback: async (response) => {
-          try {
-            console.log('🔐 Google OAuth code received:', response);
-
-            if (response.code) {
-              // Exchange code for token on backend
-              const result = await fetch('http://localhost:5000/api/auth/google-code', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ code: response.code })
-              });
-
-              const data = await result.json();
-
-              if (data.success) {
-                // Manually handle the user data since we already have it
-                const { user, token } = data.data;
-
-                // Store in localStorage
-                localStorage.setItem('expenseai_user', JSON.stringify(user));
-                localStorage.setItem('expenseai_token', token);
-
-                setMessage('Google sign-in successful!');
-
-                // Redirect based on onboarding status
-                if (user.onboardingCompleted) {
-                  window.location.href = '/dashboard';
-                } else {
-                  window.location.href = '/questionnaire';
-                }
-              } else {
-                setMessage(data.message || 'Google sign-in failed');
-              }
-            } else {
-              setMessage('Google sign-in was cancelled');
-            }
-          } catch (error) {
-            console.error('❌ Google sign-in error:', error);
-            setMessage('Google sign-in failed. Please try again.');
-          } finally {
-            setLoading(false);
-          }
-        },
-      }).requestCode();
+      setMessage('Redirecting to Google...');
+      // Note: Supabase will handle the redirect automatically
+      // The user will be redirected back to the app after authentication
 
     } catch (error) {
       console.error('❌ Google sign-in error:', error);
-      setMessage('Google sign-in failed. Please try again or use email/password.');
+      setMessage('Google sign-in failed. Please try again.');
       setLoading(false);
     }
   };
 
   const handleForgotPassword = async () => {
-    if (!formData.email) {
+    if (!email) {
       setMessage('Please enter your email address first');
       return;
     }
@@ -268,7 +179,7 @@ const AuthPage = () => {
     setMessage('');
 
     try {
-      const { success, error } = await forgotPassword(formData.email);
+      const { error } = await forgotPassword(email);
       if (error) {
         setMessage(error);
       } else {

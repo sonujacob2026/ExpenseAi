@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useSupabaseAuth } from '../context/SupabaseAuthContext';
+import { supabase } from '../lib/supabase';
 
 const Questionnaire = () => {
   const navigate = useNavigate();
-  const { user, updateUser } = useAuth();
+  const { user } = useSupabaseAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     householdMembers: '',
@@ -53,45 +54,38 @@ const Questionnaire = () => {
     console.log('👤 User:', user);
     console.log('📝 Form data:', formData);
 
-    // TEMPORARY: Skip API and go straight to dashboard for testing
-    console.log('🎯 Skipping API, going directly to dashboard...');
-
-    // Update user state
-    if (user) {
-      const updatedUser = { ...user, onboardingCompleted: true };
-      updateUser(updatedUser);
-    }
-
-    // Save basic profile data
-    const basicProfile = {
-      user_id: user?.id,
-      onboarding_completed: true,
-      ...formData
-    };
-    localStorage.setItem('expenseai_profile', JSON.stringify(basicProfile));
-
-    // Navigate to dashboard
-    navigate('/dashboard');
-    return;
-
-    // OLD CODE (commented out for testing):
-    /*
     try {
+      // Save to localStorage for backup
+      const profile = {
+        ...formData,
+        completedAt: new Date().toISOString()
+      };
+
+      localStorage.setItem('expenseai_financial_profile', JSON.stringify(profile));
+
+      // Update user metadata in Supabase
       if (user) {
-        console.log('✅ User exists, proceeding with submission');
-        const profileData = {
-          user_id: user.id,
-          household_members: parseInt(formData.householdMembers),
-          monthly_income: parseFloat(formData.monthlyIncome),
-          has_debt: formData.hasDebt === 'yes',
-          debt_amount: formData.debtAmount ? parseFloat(formData.debtAmount) : null,
-          savings_goal: formData.savingsGoal,
-          primary_expenses: formData.primaryExpenses,
-          budgeting_experience: formData.budgetingExperience,
-          financial_goals: formData.financialGoals,
-          onboarding_completed: true
-        };
-    */
+        const { error } = await supabase.auth.updateUser({
+          data: {
+            onboarding_completed: true,
+            financial_profile: profile
+          }
+        });
+
+        if (error) {
+          console.error('Error updating user metadata:', error);
+          // Continue anyway - we have localStorage backup
+        }
+      }
+
+      // Navigate to dashboard
+      navigate('/dashboard');
+
+    } catch (error) {
+      console.error('Error in questionnaire submission:', error);
+      // Navigate anyway - user can complete later
+      navigate('/dashboard');
+    }
   };
 
   const renderStep = () => {
@@ -127,12 +121,12 @@ const Questionnaire = () => {
             <p className="text-gray-600">This information helps us create realistic budget recommendations.</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
-                { label: 'Under $3,000', value: '2500' },
-                { label: '$3,000 - $5,000', value: '4000' },
-                { label: '$5,000 - $8,000', value: '6500' },
-                { label: '$8,000 - $12,000', value: '10000' },
-                { label: '$12,000 - $20,000', value: '16000' },
-                { label: 'Over $20,000', value: '25000' }
+                { label: 'Under ₹25,000', value: '20000' },
+                { label: '₹25,000 - ₹40,000', value: '32500' },
+                { label: '₹40,000 - ₹65,000', value: '52500' },
+                { label: '₹65,000 - ₹1,00,000', value: '82500' },
+                { label: '₹1,00,000 - ₹1,65,000', value: '132500' },
+                { label: 'Over ₹1,65,000', value: '200000' }
               ].map((option) => (
                 <button
                   key={option.value}

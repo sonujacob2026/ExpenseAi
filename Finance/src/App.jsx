@@ -1,6 +1,6 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider, useAuth } from './context/AuthContext'
+import { SupabaseAuthProvider, useSupabaseAuth } from './context/SupabaseAuthContext'
 import LandingPage from './components/LandingPage'
 import AuthPage from './components/AuthPage'
 import ResetPasswordPage from './components/ResetPasswordPage'
@@ -8,7 +8,7 @@ import Questionnaire from './components/Questionnaire'
 import Dashboard from './components/Dashboard'
 
 const AppRoutes = () => {
-  const { user, loading } = useAuth();
+  const { user, loading } = useSupabaseAuth();
 
   if (loading) {
     return (
@@ -25,7 +25,7 @@ const AppRoutes = () => {
         path="/auth"
         element={
           user ? (
-            user.onboardingCompleted ? (
+            user.user_metadata?.onboarding_completed ? (
               <Navigate to="/dashboard" />
             ) : (
               <Navigate to="/questionnaire" />
@@ -43,7 +43,7 @@ const AppRoutes = () => {
         path="/questionnaire"
         element={
           user ? (
-            user.onboardingCompleted ? (
+            user.user_metadata?.onboarding_completed ? (
               <Navigate to="/dashboard" />
             ) : (
               <Questionnaire />
@@ -57,7 +57,7 @@ const AppRoutes = () => {
         path="/dashboard"
         element={
           user ? (
-            user.onboardingCompleted ? (
+            user.user_metadata?.onboarding_completed ? (
               <Dashboard />
             ) : (
               <Navigate to="/questionnaire" />
@@ -73,11 +73,11 @@ const AppRoutes = () => {
 
 function App() {
   return (
-    <AuthProvider>
+    <SupabaseAuthProvider>
       <Router>
         <AppRoutes />
       </Router>
-    </AuthProvider>
+    </SupabaseAuthProvider>
   )
 }
 

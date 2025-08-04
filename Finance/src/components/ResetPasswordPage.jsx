@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useSupabaseAuth } from '../context/SupabaseAuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 const ResetPasswordPage = () => {
-  const { apiCall } = useAuth();
+  const { forgotPassword } = useSupabaseAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
