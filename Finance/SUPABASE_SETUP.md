@@ -1,120 +1,92 @@
 # Supabase Setup Guide
 
-## 🔧 Email Authentication Configuration
+## Environment Variables Required
 
-### 1. Enable Email Confirmation
-1. Go to your Supabase dashboard: https://supabase.com/dashboard/project/jiovydnhmelpgoyoqoua
-2. Navigate to **Authentication > Settings**
-3. Under **User Signups**, ensure:
-   - ✅ **Enable email confirmations** is checked
-   - ✅ **Enable email change confirmations** is checked
+Create a `.env` file in your `Finance` directory with the following variables:
 
-### 2. Configure Email Templates
-1. Go to **Authentication > Email Templates**
-2. Customize the **Confirm signup** template:
-   ```html
-   <h2>Confirm your signup</h2>
-   <p>Follow this link to confirm your account:</p>
-   <p><a href="{{ .ConfirmationURL }}">Confirm your account</a></p>
-   ```
+```bash
+# Supabase Configuration
+VITE_SUPABASE_URL=your_supabase_project_url_here
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key_here
 
-### 3. Set Redirect URLs
-1. Go to **Authentication > URL Configuration**
-2. Add these **Redirect URLs**:
-   - `http://localhost:5176/dashboard`
-   - `http://localhost:5176/reset-password`
-   - `http://localhost:5176/auth/callback`
-   - `https://your-domain.com/dashboard` (for production)
-   - `https://your-domain.com/reset-password` (for production)
+# Google OAuth (if using backend)
+VITE_GOOGLE_CLIENT_ID=your_google_client_id_here
 
-## 🔐 Password Reset Configuration
-
-### 1. Configure Reset Password Email Template
-1. Go to **Authentication > Email Templates**
-2. Select **Reset Password** template
-3. Update the template:
-   ```html
-   <h2>Reset your password</h2>
-   <p>Follow this link to reset the password for your user {{ .Email }}:</p>
-   <p><a href="{{ .ConfirmationURL }}">Reset Password</a></a></p>
-   <p>If you didn't request this, you can ignore this email.</p>
-   ```
-
-### 2. Verify Site URL
-1. Go to **Authentication > URL Configuration**
-2. Ensure **Site URL** is set to: `http://localhost:5176` (development)
-
-### 3. Test Password Reset
-1. Use the forgot password feature
-2. Check email for reset link
-3. Verify link contains: `access_token`, `refresh_token`, `type=recovery`
-
-## 🚀 Google OAuth Configuration
-
-### 1. Enable Google Provider
-1. Go to **Authentication > Providers**
-2. Enable **Google**
-3. Add your Google OAuth credentials:
-   - **Client ID**: `973276495187-ngffqvjuu5sr1ao39baer6ec123pjldo.apps.googleusercontent.com`
-   - **Client Secret**: (from Google Cloud Console)
-
-### 2. Configure Google Cloud Console
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Navigate to **APIs & Services > Credentials**
-3. Edit your OAuth 2.0 Client ID
-4. Add **Authorized redirect URIs**:
-   - `https://jiovydnhmelpgoyoqoua.supabase.co/auth/v1/callback`
-
-## 📊 Database Setup (Optional)
-
-### Create User Profiles Table
-```sql
--- Create a table for user profiles
-create table profiles (
-  id uuid references auth.users on delete cascade not null primary key,
-  updated_at timestamp with time zone,
-  username text unique,
-  full_name text,
-  avatar_url text,
-  website text,
-  onboarding_completed boolean default false,
-  financial_profile jsonb,
-
-  constraint username_length check (char_length(username) >= 3)
-);
-
--- Set up Row Level Security (RLS)
-alter table profiles enable row level security;
-
-create policy "Public profiles are viewable by everyone." on profiles
-  for select using (true);
-
-create policy "Users can insert their own profile." on profiles
-  for insert with check (auth.uid() = id);
-
-create policy "Users can update own profile." on profiles
-  for update using (auth.uid() = id);
-
--- Create a trigger to automatically create a profile for new users
-create function public.handle_new_user()
-returns trigger as $$
-begin
-  insert into public.profiles (id, full_name, avatar_url)
-  values (new.id, new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'avatar_url');
-  return new;
-end;
-$$ language plpgsql security definer;
-
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute procedure public.handle_new_user();
+# Backend API URL (if using custom backend)
+VITE_API_URL=http://localhost:5000
 ```
 
-## ✅ Testing Checklist
+## How to Get Supabase Credentials
 
-- [ ] Email signup works
-- [ ] Email confirmation received
-- [ ] Email confirmation link works
-- [ ] Google OAuth works
-- [ ] User redirected to dashboard after confirmation
-- [ ] User metadata saved correctly
+1. Go to [supabase.com](https://supabase.com) and sign in
+2. Create a new project or select existing one
+3. Go to Settings → API
+4. Copy the "Project URL" and "anon public" key
+5. Update your `.env` file with these values
+
+## Google OAuth Setup
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select existing one
+3. Enable Google+ API
+4. Go to Credentials → Create Credentials → OAuth 2.0 Client ID
+5. Add your domain to authorized origins
+6. Copy the Client ID to your `.env` file
+
+## Mobile Testing Configuration
+
+### **For Local Network Testing:**
+
+1. **Update Vite config** (already done):
+   ```js
+   server: {
+     host: '0.0.0.0', // Allow external access
+     port: 5173
+   }
+   ```
+
+2. **Find your computer's IP address:**
+   - **Windows**: `ipconfig` in CMD
+   - **Mac/Linux**: `ifconfig` or `ip addr` in terminal
+
+3. **Access from mobile:**
+   ```
+   http://YOUR_IP:5173
+   ```
+
+4. **Update Supabase redirect URLs** to include your IP:
+   ```
+   http://localhost:5173/reset-password
+   http://YOUR_IP:5173/reset-password
+   http://localhost:5173/auth/callback
+   http://YOUR_IP:5173/auth/callback
+   ```
+
+### **For Public Testing (ngrok):**
+
+1. **Install ngrok:**
+   ```bash
+   npm install -g ngrok
+   ```
+
+2. **Create tunnel:**
+   ```bash
+   ngrok http 5173
+   ```
+
+3. **Use ngrok URL** and add to Supabase redirect URLs
+
+## Testing the Setup
+
+1. Restart your development server after adding environment variables
+2. Check browser console for any configuration errors
+3. Try signing in with Google - it should now work properly
+4. Test password reset on both desktop and mobile
+
+## Troubleshooting
+
+- **DNS Error**: Make sure your Supabase URL is correct and accessible
+- **Authentication Error**: Verify your anon key is correct
+- **Google Sign-in Fails**: Check that Google OAuth is properly configured in Supabase
+- **CORS Error**: Ensure your domain is added to Supabase allowed origins
+- **Mobile Access**: Use `host: '0.0.0.0'` in Vite config for network access

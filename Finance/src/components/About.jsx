@@ -3,7 +3,7 @@ import React from 'react';
 const About = () => {
   const stats = [
     { number: "1M+", label: "Users Worldwide", description: "Trusted by millions" },
-    { number: "$50B+", label: "Tracked Expenses", description: "Money managed" },
+    { number: "₹50B+", label: "Tracked Expenses", description: "Money managed" },
     { number: "99.9%", label: "Uptime", description: "Reliable service" },
     { number: "4.9/5", label: "User Rating", description: "Customer satisfaction" }
   ];

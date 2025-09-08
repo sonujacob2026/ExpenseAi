@@ -3,7 +3,7 @@ import React from 'react';
 const WalnutAbout = () => {
   const stats = [
     { number: "50K+", label: "Active Users", description: "Families managing their finances" },
-    { number: "$2M+", label: "Money Saved", description: "Through smart budgeting" },
+    { number: "₹2Cr+", label: "Money Saved", description: "Through smart budgeting" },
     { number: "95%", label: "User Satisfaction", description: "Love our platform" },
     { number: "24/7", label: "AI Monitoring", description: "Continuous expense tracking" }
   ];
@@ -72,7 +72,7 @@ const WalnutAbout = () => {
                     <span className="text-sm text-gray-600">Monthly Budget</span>
                     <span className="text-sm font-semibold text-green-600">On Track</span>
                   </div>
-                  <div className="text-2xl font-bold text-gray-900 mb-2">$2,340 / $3,000</div>
+                  <div className="text-2xl font-bold text-gray-900 mb-2">₹2,340 / ₹3,000</div>
                   <div className="w-full bg-white rounded-full h-2">
                     <div className="bg-green-500 h-2 rounded-full" style={{width: '78%'}}></div>
                   </div>
@@ -92,7 +92,7 @@ const WalnutAbout = () => {
                           <p className="text-xs text-gray-500">Today</p>
                         </div>
                       </div>
-                      <span className="text-sm font-semibold">-$85.50</span>
+                      <span className="text-sm font-semibold">-₹85.50</span>
                     </div>
                     <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
                       <div className="flex items-center">
@@ -104,7 +104,7 @@ const WalnutAbout = () => {
                           <p className="text-xs text-gray-500">Yesterday</p>
                         </div>
                       </div>
-                      <span className="text-sm font-semibold text-green-600">+$3,200</span>
+                      <span className="text-sm font-semibold text-green-600">+₹3,200</span>
                     </div>
                   </div>
                 </div>

@@ -1,95 +1,108 @@
 import React, { useState } from 'react';
+import { useSupabaseAuth } from '../context/SupabaseAuthContext';
 
 const ForgotPasswordDemo = () => {
-  const [showDemo, setShowDemo] = useState(false);
+  const { resetPasswordForEmail, sendOtp } = useSupabaseAuth();
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
 
-  if (!showDemo) {
-    return (
-      <div className="fixed bottom-4 right-4 z-50">
-        <button
-          onClick={() => setShowDemo(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-blue-700 transition-colors"
-        >
-          📧 Demo: Forgot Password
-        </button>
-      </div>
-    );
-  }
+  const handleSendResetEmail = async () => {
+    if (!email) {
+      setMessage('Please enter an email address');
+      return;
+    }
+    setLoading(true);
+    setMessage('');
+    try {
+      const { success, error } = await resetPasswordForEmail(email);
+      if (success) {
+        setMessage('✅ Reset email sent successfully! Check your inbox.');
+      } else {
+        setMessage(`❌ Error: ${error}`);
+      }
+    } catch (error) {
+      setMessage(`❌ Exception: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSendOtp = async () => {
+    if (!email) {
+      setMessage('Please enter an email address');
+      return;
+    }
+    setLoading(true);
+    setMessage('');
+    try {
+      const { success, error } = await sendOtp(email);
+      if (success) {
+        setMessage('✅ OTP sent successfully! Check your inbox.');
+      } else {
+        setMessage(`❌ Error: ${error}`);
+      }
+    } catch (error) {
+      setMessage(`❌ Exception: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">
-            🔐 Forgot Password Demo
-          </h3>
-          <button
-            onClick={() => setShowDemo(false)}
-            className="text-gray-400 hover:text-gray-600"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
+        <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
+          OTP & Password Reset Demo
+        </h2>
+        
         <div className="space-y-4">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h4 className="font-semibold text-blue-800 mb-2">✅ How It Works:</h4>
-            <ol className="text-sm text-blue-700 space-y-1">
-              <li>1. Click "Forgot your password?" on login page</li>
-              <li>2. Enter your email address</li>
-              <li>3. Check your email for reset link</li>
-              <li>4. Click the link to set new password</li>
-              <li>5. Login with your new password</li>
-            </ol>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Email Address
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter email for testing"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            />
           </div>
 
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <h4 className="font-semibold text-green-800 mb-2">🔧 Features:</h4>
-            <ul className="text-sm text-green-700 space-y-1">
-              <li>• Secure email-based password reset</li>
-              <li>• Powered by Supabase authentication</li>
-              <li>• Automatic session management</li>
-              <li>• User-friendly interface</li>
-              <li>• Real-time validation</li>
-            </ul>
-          </div>
-
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <h4 className="font-semibold text-yellow-800 mb-2">📧 Email Setup:</h4>
-            <p className="text-sm text-yellow-700">
-              Make sure your Supabase project has email templates configured for password reset emails to work properly.
-            </p>
-          </div>
-
-          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-            <h4 className="font-semibold text-purple-800 mb-2">🧪 Test It:</h4>
-            <p className="text-sm text-purple-700 mb-2">
-              Try the forgot password flow with a real email address:
-            </p>
-            <div className="text-xs text-purple-600 bg-purple-100 rounded p-2">
-              <strong>Note:</strong> You'll receive an actual email with a reset link that redirects back to this app.
+          {message && (
+            <div className={`p-4 rounded-lg ${
+              message.includes('✅') 
+                ? 'bg-green-50 border border-green-200 text-green-700'
+                : 'bg-red-50 border border-red-200 text-red-700'
+            }`}>
+              {message}
             </div>
-          </div>
-        </div>
+          )}
 
-        <div className="mt-6 flex space-x-3">
-          <button
-            onClick={() => {
-              setShowDemo(false);
-              window.location.href = '/auth';
-            }}
-            className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors"
-          >
-            Try It Now
-          </button>
-          <button
-            onClick={() => setShowDemo(false)}
-            className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 transition-colors"
-          >
-            Close
-          </button>
+          <div className="space-y-3">
+            <button
+              onClick={handleSendResetEmail}
+              disabled={loading || !email}
+              className="w-full bg-green-600 text-white py-3 px-4 rounded-xl font-semibold hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {loading ? 'Sending...' : 'Send Reset Email Link'}
+            </button>
+
+            <button
+              onClick={handleSendOtp}
+              disabled={loading || !email}
+              className="w-full bg-blue-600 text-white py-3 px-4 rounded-xl font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {loading ? 'Sending...' : 'Send OTP Code'}
+            </button>
+          </div>
+
+          <div className="text-xs text-gray-600 space-y-2">
+            <p><strong>Reset Email Link:</strong> Sends a secure link to reset password</p>
+            <p><strong>OTP Code:</strong> Sends a 6-digit code for passwordless reset</p>
+            <p className="text-yellow-600">⚠️ Make sure your Supabase project has email templates configured!</p>
+          </div>
         </div>
       </div>
     </div>

@@ -1,48 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import { useSupabaseAuth } from '../context/SupabaseAuthContext';
+import { useProfile } from '../context/ProfileContext';
 import { useNavigate } from 'react-router-dom';
 import ExpenseList from './ExpenseList';
 import ExpenseStats from './ExpenseStats';
-import SimpleAddExpenseModal from './SimpleAddExpenseModal';
 import FinancialInsights from './FinancialInsights';
 import BudgetRecommendations from './BudgetRecommendations';
 import FinancialGoalsDisplay from './FinancialGoalsDisplay';
+import HouseholdExpenseForm from './HouseholdExpenseForm';
+
+import HouseholdExpenseDashboard from './HouseholdExpenseDashboard';
+import BudgetOverview from './BudgetOverview';
+import GoalsModal from './GoalsModal';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, signOut } = useSupabaseAuth();
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { profile, loading: profileLoading, refreshProfile } = useProfile();
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [expenses, setExpenses] = useState([]);
   const [activeTab, setActiveTab] = useState('expenses');
+  const [showBudget, setShowBudget] = useState(false);
+  const [showGoals, setShowGoals] = useState(false);
+  const onboardingIncomplete = !(profile?.onboarding_completed || user?.user_metadata?.onboarding_completed);
 
   useEffect(() => {
-    getProfile();
     loadExpenses();
+    // Profile is automatically loaded by ProfileContext
   }, []);
 
-  const getProfile = async () => {
-    try {
-      // Get profile from localStorage (try both keys)
-      let savedProfile = localStorage.getItem('expenseai_profile');
-      if (!savedProfile) {
-        savedProfile = localStorage.getItem('expenseai_financial_profile');
-      }
-
-      if (savedProfile) {
-        const profileData = JSON.parse(savedProfile);
-        console.log('📊 Loaded profile data:', profileData);
-        setProfile(profileData);
-      } else {
-        console.log('📊 No profile data found');
-      }
-    } catch (error) {
-      console.error('Error loading profile:', error);
-    } finally {
-      setLoading(false);
+  // Refresh profile only if not already loaded to avoid flicker
+  useEffect(() => {
+    if (user?.id && !profile && !profileLoading) {
+      refreshProfile();
     }
-  };
+  }, [user?.id, profile, profileLoading, refreshProfile]);
 
   const loadExpenses = () => {
     try {
@@ -59,6 +51,36 @@ const Dashboard = () => {
   useEffect(() => {
     localStorage.setItem('expenseai_expenses', JSON.stringify(expenses));
   }, [expenses]);
+
+  // Disable background scroll (html + body) when the add-expense modal is open
+  useEffect(() => {
+    const { body, documentElement } = document;
+    const prevBodyOverflow = body.style.overflow;
+    const prevHtmlOverflow = documentElement.style.overflow;
+    const prevBodyPaddingRight = body.style.paddingRight;
+
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+
+    if (showAddExpense) {
+      // Prevent background scroll
+      body.style.overflow = 'hidden';
+      documentElement.style.overflow = 'hidden';
+      // Avoid layout shift when removing scrollbar
+      if (scrollbarWidth > 0) {
+        body.style.paddingRight = `${scrollbarWidth}px`;
+      }
+    } else {
+      body.style.overflow = prevBodyOverflow || '';
+      documentElement.style.overflow = prevHtmlOverflow || '';
+      body.style.paddingRight = prevBodyPaddingRight || '';
+    }
+
+    return () => {
+      body.style.overflow = prevBodyOverflow || '';
+      documentElement.style.overflow = prevHtmlOverflow || '';
+      body.style.paddingRight = prevBodyPaddingRight || '';
+    };
+  }, [showAddExpense]);
 
   const addExpense = (newExpense) => {
     const expense = {
@@ -91,7 +113,8 @@ const Dashboard = () => {
     navigate('/');
   };
 
-  if (loading) {
+  // Show loader only on initial load when profile is null and loading
+  if (profileLoading && !profile) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600"></div>
@@ -108,7 +131,7 @@ const Dashboard = () => {
             <div className="flex items-center">
               <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center">
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2zm0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
               </div>
               <span className="ml-3 text-2xl font-bold text-gray-900">ExpenseAI</span>
@@ -138,7 +161,41 @@ const Dashboard = () => {
               "Let's get started with tracking your expenses and managing your budget."
             }
           </p>
+          {onboardingIncomplete && (
+            <div className="mt-4">
+              <button
+                onClick={() => navigate('/questionnaire')}
+                className="px-4 py-2 bg-white text-green-700 font-medium rounded-lg hover:bg-green-50"
+              >
+                Complete Questionnaire
+              </button>
+            </div>
+          )}
         </div>
+
+        {onboardingIncomplete && (
+          <div className="mb-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="text-yellow-800 text-sm">
+                <strong>Finish your setup:</strong> Complete a short questionnaire to personalize recommendations and budgets.
+              </div>
+              <div className="space-x-2">
+                <button
+                  onClick={() => navigate('/questionnaire')}
+                  className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg"
+                >
+                  Continue Questionnaire
+                </button>
+                <button
+                  onClick={() => refreshProfile()}
+                  className="px-4 py-2 bg-white border border-yellow-300 text-yellow-800 rounded-lg hover:bg-yellow-100"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Profile Summary */}
         {profile && (
@@ -203,6 +260,18 @@ const Dashboard = () => {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {onboardingIncomplete && (
+            <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Complete Questionnaire</h3>
+              <p className="text-gray-600 mb-4">Finish onboarding to personalize insights and budgets</p>
+              <button
+                onClick={() => navigate('/questionnaire')}
+                className="w-full bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-4 rounded-lg transition-colors"
+              >
+                Continue
+              </button>
+            </div>
+          )}
           <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Add Expense</h3>
             <p className="text-gray-600 mb-4">Record a new expense transaction</p>
@@ -217,18 +286,23 @@ const Dashboard = () => {
           <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">View Budget</h3>
             <p className="text-gray-600 mb-4">Check your monthly budget status</p>
-            <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors">
-              View Budget
-            </button>
+            <button onClick={() => setShowBudget(true)} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors">View Budget</button>
           </div>
 
           <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Financial Goals</h3>
             <p className="text-gray-600 mb-4">Track your savings and goals</p>
-            <button className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg transition-colors">
-              View Goals
-            </button>
+            <button onClick={() => setShowGoals(true)} className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg transition-colors">View Goals</button>
           </div>
+        </div>
+
+        
+
+
+
+        {/* Household Expense Management */}
+        <div className="mb-8">
+          <HouseholdExpenseDashboard />
         </div>
 
         {/* Financial Insights and Budget Recommendations */}
@@ -252,15 +326,45 @@ const Dashboard = () => {
           onEdit={editExpense}
         />
 
-
       </main>
 
-      {/* Add Expense Modal */}
+      {/* Add Expense Modal (uses HouseholdExpenseForm) */}
       {showAddExpense && (
-        <SimpleAddExpenseModal
-          onClose={() => setShowAddExpense(false)}
-          onAdd={addExpense}
-        />
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="max-w-4xl w-full max-h-[90vh] overflow-auto">
+            <HouseholdExpenseForm
+              onExpenseAdded={(exp) => {
+                // Mirror local dashboard list for consistency with existing behavior
+                addExpense({
+                  amount: exp.amount,
+                  description: exp.description,
+                  category: exp.category,
+                  date: exp.date,
+                  paymentMethod: exp.payment_method,
+                  notes: exp.notes || ''
+                });
+              }}
+              onClose={() => setShowAddExpense(false)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Budget Overview Modal */}
+      {showBudget && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="max-w-5xl w-full max-h-[90vh] overflow-auto">
+            <BudgetOverview onClose={() => setShowBudget(false)} />
+          </div>
+        </div>
+      )}
+
+      {showGoals && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="max-w-3xl w-full max-h-[90vh] overflow-auto">
+            <GoalsModal onClose={() => setShowGoals(false)} />
+          </div>
+        </div>
       )}
     </div>
   );

@@ -76,6 +76,35 @@ const ExpenseList = ({ expenses, onDelete, onEdit }) => {
     }));
   };
 
+  // Build a UPI payment deep link that opens supported apps (GPay/PhonePe/etc.) on mobile
+  const buildUpiUrl = ({ pa, pn, am, tn, cu = 'INR', tr }) => {
+    const params = new URLSearchParams();
+    if (pa) params.set('pa', pa); // Payee VPA
+    if (pn) params.set('pn', pn); // Payee name
+    if (am) params.set('am', am); // Amount
+    if (tn) params.set('tn', tn); // Note
+    params.set('cu', cu);
+    if (tr) params.set('tr', tr); // Transaction reference (optional)
+    return `upi://pay?${params.toString()}`;
+  };
+
+  // Trigger payment via UPI deep link
+  const handlePay = (expense) => {
+    const upiId = expense.upiId || import.meta.env.VITE_DEFAULT_UPI_ID;
+    if (!upiId) {
+      alert('UPI ID not configured. Please set VITE_DEFAULT_UPI_ID in your .env or provide expense.upiId');
+      return;
+    }
+    const payeeName = import.meta.env.VITE_UPI_PAYEE_NAME || 'ExpenseAI';
+    const amount = Number(expense.amount || 0).toFixed(2);
+    const note = (expense.description || 'Expense Payment').slice(0, 40);
+
+    const url = buildUpiUrl({ pa: upiId, pn: payeeName, am: amount, tn: note });
+
+    // On mobile, this will open the UPI app; on desktop, it may do nothing
+    window.location.href = url;
+  };
+
   if (expenses.length === 0) {
     return (
       <div className="bg-white rounded-lg p-8 shadow-sm border border-gray-200 text-center">
@@ -190,6 +219,15 @@ const ExpenseList = ({ expenses, onDelete, onEdit }) => {
                   </div>
                   
                   <div className="flex space-x-2">
+                    <button
+                      onClick={() => handlePay(expense)}
+                      className="p-2 text-green-600 hover:bg-green-50 rounded-md transition-colors"
+                      title="Pay via UPI (GPay/PhonePe)"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.5 0-3 .75-3 2s1.5 2 3 2 3 .75 3 2-1.5 2-3 2m0-8V7m0 10v-1m7-6a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </button>
                     <button
                       onClick={() => startEdit(expense)}
                       className="p-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"

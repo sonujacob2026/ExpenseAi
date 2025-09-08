@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSupabaseAuth } from '../context/SupabaseAuthContext';
 import { supabase } from '../lib/supabase';
+import ProfileService from '../services/profileService';
 
 const Questionnaire = () => {
   const navigate = useNavigate();
   const { user } = useSupabaseAuth();
   const [currentStep, setCurrentStep] = useState(1);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     householdMembers: '',
     monthlyIncome: '',
@@ -19,6 +21,29 @@ const Questionnaire = () => {
   });
 
   const totalSteps = 6;
+
+  // Load existing profile data when component mounts
+  useEffect(() => {
+    const loadExistingProfile = async () => {
+      if (user?.id) {
+        try {
+          console.log('🔄 Loading existing profile for user:', user.id);
+          const result = await ProfileService.getFormattedProfile(user.id);
+          
+          if (result.success && result.data) {
+            console.log('✅ Loaded existing profile:', result.data);
+            setFormData(result.data);
+          } else {
+            console.log('ℹ️ No existing profile found, starting fresh');
+          }
+        } catch (error) {
+          console.error('❌ Error loading profile:', error);
+        }
+      }
+    };
+
+    loadExistingProfile();
+  }, [user?.id]);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -54,37 +79,53 @@ const Questionnaire = () => {
     console.log('👤 User:', user);
     console.log('📝 Form data:', formData);
 
+    if (!user?.id) {
+      console.error('❌ No user ID available');
+      alert('Please sign in to save your profile');
+      return;
+    }
+
+    setLoading(true);
+
     try {
-      // Save to localStorage for backup
-      const profile = {
-        ...formData,
-        completedAt: new Date().toISOString()
-      };
+      // Save to database using ProfileService
+      const result = await ProfileService.saveProfile(formData, user.id);
+      
+      if (result.success) {
+        console.log('✅ Profile saved to database successfully');
+        
+        // Also save to localStorage for backup
+        const profile = {
+          ...formData,
+          completedAt: new Date().toISOString()
+        };
+        localStorage.setItem('expenseai_financial_profile', JSON.stringify(profile));
 
-      localStorage.setItem('expenseai_financial_profile', JSON.stringify(profile));
-
-      // Update user metadata in Supabase
-      if (user) {
-        const { error } = await supabase.auth.updateUser({
+        // Update user metadata in Supabase auth
+        const { error: authError } = await supabase.auth.updateUser({
           data: {
             onboarding_completed: true,
             financial_profile: profile
           }
         });
 
-        if (error) {
-          console.error('Error updating user metadata:', error);
-          // Continue anyway - we have localStorage backup
+        if (authError) {
+          console.error('⚠️ Error updating user metadata:', authError);
+          // Continue anyway - database save was successful
         }
+
+        // Navigate to dashboard
+        navigate('/dashboard');
+      } else {
+        console.error('❌ Failed to save profile:', result.error);
+        alert('Failed to save your profile. Please try again.');
       }
 
-      // Navigate to dashboard
-      navigate('/dashboard');
-
     } catch (error) {
-      console.error('Error in questionnaire submission:', error);
-      // Navigate anyway - user can complete later
-      navigate('/dashboard');
+      console.error('❌ Error in questionnaire submission:', error);
+      alert('An error occurred while saving your profile. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -322,9 +363,10 @@ const Questionnaire = () => {
             {currentStep === totalSteps ? (
               <button
                 onClick={handleSubmit}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                disabled={loading}
+                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                Complete Setup
+                {loading ? 'Saving...' : 'Complete Setup'}
               </button>
             ) : (
               <button

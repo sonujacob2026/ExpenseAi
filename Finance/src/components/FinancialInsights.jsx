@@ -1,15 +1,24 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const FinancialInsights = ({ profile }) => {
+  const navigate = useNavigate();
   if (!profile) {
     return (
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
         <h3 className="text-lg font-semibold text-blue-800 mb-2">
           Complete Your Profile
         </h3>
-        <p className="text-blue-600">
+        <p className="text-blue-600 mb-4">
           Complete the questionnaire to get personalized financial insights and recommendations.
         </p>
+        <button
+          onClick={() => navigate('/questionnaire')}
+          className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+          Start Questionnaire
+        </button>
       </div>
     );
   }

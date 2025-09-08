@@ -78,7 +78,7 @@ const WalnutHero = ({ onGetStarted }) => {
                 <div className="space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Budget Used</span>
-                    <span className="font-semibold text-gray-900">$2,340 / $3,000</span>
+                    <span className="font-semibold text-gray-900">₹2,340 / ₹3,000</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-3">
                     <div className="bg-green-600 h-3 rounded-full" style={{width: '78%'}}></div>
@@ -99,7 +99,7 @@ const WalnutHero = ({ onGetStarted }) => {
                         <p className="text-sm text-gray-500">15 transactions</p>
                       </div>
                     </div>
-                    <span className="font-semibold text-gray-900">$680</span>
+                    <span className="font-semibold text-gray-900">₹680</span>
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -115,7 +115,7 @@ const WalnutHero = ({ onGetStarted }) => {
                         <p className="text-sm text-gray-500">8 transactions</p>
                       </div>
                     </div>
-                    <span className="font-semibold text-gray-900">$420</span>
+                    <span className="font-semibold text-gray-900">₹420</span>
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -130,7 +130,7 @@ const WalnutHero = ({ onGetStarted }) => {
                         <p className="text-sm text-gray-500">12 transactions</p>
                       </div>
                     </div>
-                    <span className="font-semibold text-gray-900">$320</span>
+                    <span className="font-semibold text-gray-900">₹320</span>
                   </div>
                 </div>
               </div>
