@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { useToast } from './ToastProvider';
 
 const ExpenseList = ({ expenses, onDelete, onEdit }) => {
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
+  const toast = useToast();
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -92,7 +94,7 @@ const ExpenseList = ({ expenses, onDelete, onEdit }) => {
   const handlePay = (expense) => {
     const upiId = expense.upiId || import.meta.env.VITE_DEFAULT_UPI_ID;
     if (!upiId) {
-      alert('UPI ID not configured. Please set VITE_DEFAULT_UPI_ID in your .env or provide expense.upiId');
+      toast.info('UPI ID not configured. Set VITE_DEFAULT_UPI_ID or provide expense.upiId');
       return;
     }
     const payeeName = import.meta.env.VITE_UPI_PAYEE_NAME || 'ExpenseAI';

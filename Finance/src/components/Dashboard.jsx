@@ -36,6 +36,13 @@ const Dashboard = () => {
     }
   }, [user?.id, profile, profileLoading, refreshProfile]);
 
+  // Redirect brand-new users to questionnaire without showing dashboard to avoid flicker
+  useEffect(() => {
+    if (user?.id && !profileLoading && onboardingIncomplete) {
+      navigate('/questionnaire', { replace: true });
+    }
+  }, [user?.id, profileLoading, onboardingIncomplete, navigate]);
+
   const loadExpenses = () => {
     try {
       const savedExpenses = localStorage.getItem('expenseai_expenses');
@@ -114,7 +121,7 @@ const Dashboard = () => {
   };
 
   // Show loader only on initial load when profile is null and loading
-  if (profileLoading && !profile) {
+  if ((profileLoading && !profile) || (user && onboardingIncomplete)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600"></div>

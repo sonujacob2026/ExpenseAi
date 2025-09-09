@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useToast } from './ToastProvider';
 import { useSupabaseAuth } from '../context/SupabaseAuthContext';
 import { supabase } from '../lib/supabase';
 import { createOrder, payWithRazorpay } from '../services/paymentService';
 
-const RecurringExpensesManager = () => {
+const RecurringExpensesManager = ({ refreshKey = 0 }) => {
   const { user } = useSupabaseAuth();
+  const toast = useToast();
   const [recurringExpenses, setRecurringExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -23,7 +25,7 @@ const RecurringExpensesManager = () => {
     if (user?.id) {
       loadRecurringExpenses();
     }
-  }, [user?.id]);
+  }, [user?.id, refreshKey]);
 
   const loadRecurringExpenses = async () => {
     try {
@@ -58,7 +60,7 @@ const RecurringExpensesManager = () => {
     e.preventDefault();
     
     if (!formData.name || !formData.amount || !formData.category || !formData.nextDueDate) {
-      alert('Please fill in all required fields');
+      toast.info('Please fill in all required fields');
       return;
     }
 
@@ -84,7 +86,7 @@ const RecurringExpensesManager = () => {
 
       if (error) {
         console.error('Error adding recurring expense:', error);
-        alert('Error adding recurring expense. Please try again.');
+        toast.error('Error adding recurring expense. Please try again.');
       } else {
         console.log('Recurring expense added successfully:', data);
         setShowAddForm(false);
@@ -98,11 +100,11 @@ const RecurringExpensesManager = () => {
           isActive: true
         });
         loadRecurringExpenses();
-        alert('Recurring expense added successfully!');
+        toast.success('Recurring expense added successfully!');
       }
     } catch (error) {
       console.error('Exception adding recurring expense:', error);
-      alert('Error adding recurring expense. Please try again.');
+      toast.error('Error adding recurring expense. Please try again.');
     }
   };
 
@@ -131,14 +133,14 @@ const RecurringExpensesManager = () => {
 
       if (error) {
         console.error('Error marking as paid:', error);
-        alert('Error marking as paid. Please try again.');
+        toast.error('Error marking as paid. Please try again.');
       } else {
-        alert('Expense marked as paid!');
+        toast.success('Expense marked as paid!');
         loadRecurringExpenses();
       }
     } catch (error) {
       console.error('Exception marking as paid:', error);
-      alert('Error marking as paid. Please try again.');
+      toast.error('Error marking as paid. Please try again.');
     }
   };
 
@@ -155,14 +157,14 @@ const RecurringExpensesManager = () => {
 
       if (error) {
         console.error('Error deleting recurring expense:', error);
-        alert('Error deleting recurring expense. Please try again.');
+        toast.error('Error deleting recurring expense. Please try again.');
       } else {
-        alert('Recurring expense deleted successfully!');
+        toast.success('Recurring expense deleted successfully!');
         loadRecurringExpenses();
       }
     } catch (error) {
       console.error('Exception deleting recurring expense:', error);
-      alert('Error deleting recurring expense. Please try again.');
+      toast.error('Error deleting recurring expense. Please try again.');
     }
   };
 
@@ -171,14 +173,12 @@ const RecurringExpensesManager = () => {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
     const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
+    const backendUrl = import.meta.env.VITE_BACKEND_URL;
     
-    // Check if we have valid configuration (not just placeholder values)
-    return supabaseUrl && 
-           supabaseKey && 
-           razorpayKey &&
-           !supabaseUrl.includes('your_') &&
-           !supabaseKey.includes('your_') &&
-           !razorpayKey.includes('your_');
+    // Valid if either Supabase+RZP or Backend URL+RZP is configured
+    const supabaseOk = supabaseUrl && supabaseKey && !supabaseUrl.includes('your_') && !supabaseKey.includes('your_');
+    const backendOk = backendUrl && backendUrl.length > 0;
+    return razorpayKey && !razorpayKey.includes('your_') && (supabaseOk || backendOk);
   };
 
   // Trigger Razorpay payment for a recurring expense
@@ -197,7 +197,7 @@ const RecurringExpensesManager = () => {
         
         if (confirmed) {
           await markAsPaid(expense.id);
-          alert('Demo payment completed! Expense marked as paid.');
+          toast.success('Demo payment completed! Expense marked as paid.');
         }
         return;
       }
@@ -210,16 +210,21 @@ const RecurringExpensesManager = () => {
       });
 
       if (!success) {
-        alert(message || 'Failed to create order');
+        toast.error(message || 'Failed to create order');
         return;
       }
 
       await payWithRazorpay({ order, user, expense });
-      alert('Payment successful!');
+      try { window.Swal && await window.Swal.fire({ icon: 'success', title: 'Payment successful', text: expense.description }); } catch {}
+      // Mark paid by creating a concrete expense row
+      await markAsPaid(expense.id);
+      // Advance the recurring expense's anchor date to today so next due shifts to next cycle
+      const todayIso = new Date().toISOString().split('T')[0];
+      await supabase.from('expenses').update({ date: todayIso }).eq('id', expense.id);
       loadRecurringExpenses();
     } catch (e) {
       console.error('Payment error:', e);
-      alert(e.message || 'Payment failed or cancelled');
+      toast.error(e.message || 'Payment failed or cancelled');
     }
   };
 
@@ -410,27 +415,33 @@ const RecurringExpensesManager = () => {
                   </div>
                 </div>
                 <div className="flex space-x-2">
-                  <button
-                    onClick={() => payRecurring(expense)}
-                    className={`px-3 py-1 rounded-lg transition-colors text-sm ${
-                      !isPaymentSystemConfigured()
-                        ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
-                        : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                    }`}
-                    title={
-                      !isPaymentSystemConfigured()
-                        ? 'Demo Mode - Click to simulate payment'
-                        : 'Pay with Razorpay'
-                    }
-                  >
-                    {!isPaymentSystemConfigured() ? 'Pay (Demo)' : 'Pay'}
-                  </button>
-                  <button
-                    onClick={() => markAsPaid(expense.id)}
-                    className="px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm"
-                  >
-                    Mark Paid
-                  </button>
+                  {(() => {
+                    const nextDue = getNextDueDate(expense);
+                    const isPaidThisCycle = new Date(nextDue) > new Date();
+                    return (
+                      <div className="flex flex-col items-end">
+                        <button
+                          onClick={() => payRecurring(expense)}
+                          disabled={isPaidThisCycle}
+                          className={`px-3 py-1 rounded-lg transition-colors text-sm ${
+                            isPaidThisCycle
+                              ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                              : (!isPaymentSystemConfigured()
+                                  ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                                  : 'bg-blue-100 text-blue-700 hover:bg-blue-200')
+                          }`}
+                          title={
+                            isPaidThisCycle
+                              ? `Next payment: ${nextDue}`
+                              : (!isPaymentSystemConfigured() ? 'Demo Mode - Click to simulate payment' : 'Pay with Razorpay')
+                          }
+                        >
+                          {isPaidThisCycle ? 'Paid' : (!isPaymentSystemConfigured() ? 'Pay (Demo)' : 'Pay')}
+                        </button>
+                        <span className="text-xs text-gray-500 mt-1">Next: {nextDue}</span>
+                      </div>
+                    );
+                  })()}
                   <button
                     onClick={() => deleteRecurringExpense(expense.id)}
                     className="px-3 py-1 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm"

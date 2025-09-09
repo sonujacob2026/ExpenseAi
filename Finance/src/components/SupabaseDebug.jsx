@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useToast } from './ToastProvider';
 import { supabase } from '../lib/supabase';
 
 const SupabaseDebug = () => {
   const [configStatus, setConfigStatus] = useState({});
   const [connectionTest, setConnectionTest] = useState({});
   const [loading, setLoading] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
     checkConfiguration();
@@ -62,7 +64,7 @@ const SupabaseDebug = () => {
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
-    alert('Copied to clipboard!');
+    toast.success('Copied to clipboard!');
   };
 
   return (

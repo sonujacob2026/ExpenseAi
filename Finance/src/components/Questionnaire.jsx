@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useToast } from './ToastProvider';
 import { useNavigate } from 'react-router-dom';
 import { useSupabaseAuth } from '../context/SupabaseAuthContext';
 import { supabase } from '../lib/supabase';
@@ -7,6 +8,7 @@ import ProfileService from '../services/profileService';
 const Questionnaire = () => {
   const navigate = useNavigate();
   const { user } = useSupabaseAuth();
+  const toast = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -81,7 +83,7 @@ const Questionnaire = () => {
 
     if (!user?.id) {
       console.error('❌ No user ID available');
-      alert('Please sign in to save your profile');
+      toast.info('Please sign in to save your profile');
       return;
     }
 
@@ -115,15 +117,16 @@ const Questionnaire = () => {
         }
 
         // Navigate to dashboard
+        toast.success('Profile saved successfully');
         navigate('/dashboard');
       } else {
         console.error('❌ Failed to save profile:', result.error);
-        alert('Failed to save your profile. Please try again.');
+        toast.error('Failed to save your profile. Please try again.');
       }
 
     } catch (error) {
       console.error('❌ Error in questionnaire submission:', error);
-      alert('An error occurred while saving your profile. Please try again.');
+      toast.error('An error occurred while saving your profile. Please try again.');
     } finally {
       setLoading(false);
     }

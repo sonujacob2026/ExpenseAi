@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useToast } from './ToastProvider';
 import { useSupabaseAuth } from '../context/SupabaseAuthContext';
 import { supabase } from '../lib/supabase';
 
@@ -8,6 +9,7 @@ const SimplePasswordReset = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [step, setStep] = useState('email'); // 'email', 'sent', 'instructions'
+  const toast = useToast();
 
   // Generate a secure random password
   const generateSecurePassword = () => {
@@ -71,7 +73,7 @@ const SimplePasswordReset = () => {
     const tempPassword = localStorage.getItem('tempPassword');
     if (tempPassword) {
       navigator.clipboard.writeText(tempPassword);
-      alert('Password copied to clipboard!');
+      toast.success('Password copied to clipboard!');
     }
   };
 

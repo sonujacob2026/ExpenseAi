@@ -18,6 +18,7 @@ const HouseholdExpenseDashboard = () => {
     transport: 0,
     other: 0
   });
+  const [recurringRefreshKey, setRecurringRefreshKey] = useState(0);
 
   // Load expenses
   useEffect(() => {
@@ -84,6 +85,10 @@ const HouseholdExpenseDashboard = () => {
   const handleExpenseAdded = (newExpense) => {
     setExpenses(prev => [newExpense, ...prev]);
     calculateMonthlyStats([newExpense, ...expenses]);
+    // If the newly added expense is recurring, bump refresh key to reload recurring list
+    if (newExpense?.is_recurring) {
+      setRecurringRefreshKey((k) => k + 1);
+    }
     setShowAddForm(false);
   };
 
@@ -184,7 +189,7 @@ const HouseholdExpenseDashboard = () => {
           {activeTab === 'overview' && (
             <div className="space-y-6">
               <QuickExpenseButtons onExpenseAdded={handleExpenseAdded} />
-              <RecurringExpensesManager />
+              <RecurringExpensesManager refreshKey={recurringRefreshKey} />
             </div>
           )}
 
@@ -193,7 +198,7 @@ const HouseholdExpenseDashboard = () => {
           )}
 
           {activeTab === 'recurring' && (
-            <RecurringExpensesManager />
+            <RecurringExpensesManager refreshKey={recurringRefreshKey} />
           )}
 
           {activeTab === 'recent' && (

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useToast } from './ToastProvider';
 import { useSearchParams } from 'react-router-dom';
 
 const URLDebugger = () => {
   const [searchParams] = useSearchParams();
   const [urlInfo, setUrlInfo] = useState({});
+  const toast = useToast();
 
   useEffect(() => {
     const info = {
@@ -22,7 +24,7 @@ const URLDebugger = () => {
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
-    alert('Copied to clipboard!');
+    toast.success('Copied to clipboard!');
   };
 
   return (

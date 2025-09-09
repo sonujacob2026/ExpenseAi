@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useToast } from './ToastProvider';
 import { useSupabaseAuth } from '../context/SupabaseAuthContext';
 import { supabase } from '../lib/supabase';
 
 const DebugAuth = () => {
   const { user, session, loading } = useSupabaseAuth();
   const [debugInfo, setDebugInfo] = useState({});
+  const toast = useToast();
 
   useEffect(() => {
     const getDebugInfo = async () => {
@@ -38,10 +40,14 @@ const DebugAuth = () => {
     try {
       const { data, error } = await supabase.from('_realtime').select('*').limit(1);
       console.log('Connection test:', { data, error });
-      alert(error ? `Connection failed: ${error.message}` : 'Connection successful!');
+      if (error) {
+        toast.error(`Connection failed: ${error.message}`);
+      } else {
+        toast.success('Connection successful!');
+      }
     } catch (error) {
       console.error('Connection test failed:', error);
-      alert(`Connection test failed: ${error.message}`);
+      toast.error(`Connection test failed: ${error.message}`);
     }
   };
 

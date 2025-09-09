@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useToast } from './ToastProvider';
 
 const SimpleAddExpenseModal = ({ onClose, onAdd }) => {
   const [formData, setFormData] = useState({
@@ -9,6 +10,7 @@ const SimpleAddExpenseModal = ({ onClose, onAdd }) => {
     paymentMethod: 'cash',
     notes: ''
   });
+  const toast = useToast();
 
   const categories = [
     'Food & Dining',
@@ -38,7 +40,7 @@ const SimpleAddExpenseModal = ({ onClose, onAdd }) => {
     e.preventDefault();
     
     if (!formData.amount || !formData.description || !formData.category) {
-      alert('Please fill in all required fields');
+      toast.info('Please fill in all required fields');
       return;
     }
 

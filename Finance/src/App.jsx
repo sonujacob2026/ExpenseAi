@@ -2,6 +2,7 @@ import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { SupabaseAuthProvider, useSupabaseAuth } from './context/SupabaseAuthContext'
 import { ProfileProvider } from './context/ProfileContext'
+import ToastProvider from './components/ToastProvider'
 import LandingPage from './components/LandingPage'
 import AuthPage from './components/AuthPage'
 import ResetPasswordPage from './components/ResetPasswordPage'
@@ -140,9 +141,11 @@ function App() {
   return (
     <SupabaseAuthProvider>
       <ProfileProvider>
-        <Router>
-          <AppRoutes />
-        </Router>
+        <ToastProvider>
+          <Router>
+            <AppRoutes />
+          </Router>
+        </ToastProvider>
       </ProfileProvider>
     </SupabaseAuthProvider>
   )

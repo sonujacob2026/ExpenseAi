@@ -5,8 +5,16 @@
 @tailwind utilities;
 
 @layer base {
-  html {
+  html, body, #root {
     font-family: 'Inter', system-ui, sans-serif;
+    height: 100%;
+    width: 100%;
+    overflow-x: hidden; /* prevent horizontal scrolling/drags */
+  }
+  body {
+    margin: 0;
+    overscroll-behavior-x: none; /* disable horizontal overscroll bounce/gestures */
+    touch-action: pan-y; /* allow vertical scroll, block horizontal pan */
   }
 }
 
